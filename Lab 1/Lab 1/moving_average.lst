@@ -1,0 +1,1056 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;moving_average.s
+    2 00000000         ; By Michael Lagace (260372922) and Georges Krinker (260
+                       369844)
+    3 00000000         ; ECSE 426
+    4 00000000         ; Moving Average Filter v.1.1 OPTIMIZED
+    5 00000000         ; Latest Recorded Execution time: 1.04µs
+    6 00000000         
+    7 00000000                 AREA             FILTERCODE, CODE
+    8 00000000                 EXPORT           moving_average_test
+    9 00000000         
+   10 00000000         ; Below you will find a map of how we store our state. W
+                       e use the stack, initially referenced by the stack point
+                       er (SP).
+   11 00000000         ; We store a window of d size, always replacing the olde
+                       st data point with the newest
+   12 00000000         
+   13 00000000         ; -------------------------------- 
+   14 00000000         ; |          |
+   15 00000000         ; |   Index      |    // The index is used to keep track
+                        of the oldest data point
+   16 00000000         ; |------------------------------|
+   17 00000000         ; |  'Old Moving Average'   |    
+   18 00000000         ; |------------------------------|
+   19 00000000         ; |   data_d-1     |
+   20 00000000         ; |------------------------------|          
+   21 00000000         ; |   data_d-2     |
+   22 00000000         ; |    .      |
+   23 00000000         ; |    .      |
+   24 00000000         ; |    .      |
+   25 00000000         ; |------------------------------|
+   26 00000000         ; |   data_1      |
+   27 00000000         ; |------------------------------|
+   28 00000000         ; |   data_0      |
+   29 00000000         ; |------------------------------|
+   30 00000000         ;     |
+   31 00000000         ;     |
+   32 00000000         ;     V  STACK GROWS DOWNWARDS...
+   33 00000000         ;
+   34 00000000         moving_average_test
+   35 00000000         
+   36 00000000         ; allocate our state
+   37 00000000 E92D 1060       PUSH             {R5, R6, R12} ; Preserve R5 and
+                                                             R6
+   38 00000004 F04F 0003       MOV              R0, #depth  ; Store depth in R0
+                                                            
+   39 00000008 F100 0502       ADD              R5, R0, #2  ; store d+2 in R5 w
+                                                            hich will be the sp
+                                                            ace we'll allocate 
+                                                            in our stack
+   40 0000000C F04F 0004       MOV              R0, #4      ; Now store 4 in R0
+                                                            
+   41 00000010 4669            MOV              R1, R13     ; Move the SP onto 
+                                                            R1.
+   42 00000012 FB00 1515       MLS              R5, R0, R5, R1 ; Multiply and s
+                                                            ubtract, hence allo
+                                                            cating our state
+   43 00000016 4628            MOV              R0, R5      ; put the top (geog
+                                                            raphical bottom) of
+                                                             the stack into R0 
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                                                            for parameter passi
+                                                            ng
+   44 00000018 F000 F810       BL               moving_average_init ; go to the
+                                                             init program with 
+                                                            the top of the stac
+                                                            k in R0 for initial
+                                                            ization 
+   45 0000001C         
+   46 0000001C         inited
+   47 0000001C         
+   48 0000001C         ; Fetch new data point from test vector and check whethe
+                       r we're done...This check will be later removed...
+   49 0000001C 4E24            LDR              R6, =test_vector ; Fetch the ne
+                                                            w data point from t
+                                                            he test vector
+   50 0000001E F506 6C00       ADD              R12, R6, #2048 ; Get the last a
+                                                            ddress of the test 
+                                                            vector (will be rem
+                                                            oved in final versi
+                                                            on)
+   51 00000022         
+   52 00000022         load_new
+   53 00000022         
+   54 00000022         ; Load the new number, see if we're done (will be remove
+                       d), 
+   55 00000022 EDD6 0A00       VLDR.F32         S1, [R6, #0]
+   56 00000026 D6FC            BVS              load_new    ; if next value is 
+                                                            bad(NaN, INF, OVF) 
+                                                            skip it
+   57 00000028 4566            CMP              R6, R12     ; else, check if we
+                                                            're done (remember,
+                                                             this won't be ther
+                                                            e in the final vers
+                                                            ion!)
+   58 0000002A D004            BEQ              done        ; if we've processe
+                                                            d all of our values
+                                                             we're done...
+   59 0000002C F106 0604       ADD              R6, R6 ,#4  ; else point to the
+                                                             enxt data point in
+                                                             the vector
+   60 00000030 4628            MOV              R0, R5      ; safely store our 
+                                                            stack pointer in R5
+                                                             so we know it won'
+                                                            t be fucked with
+   61 00000032 F000 F81C       BL               moving_average ; go calculate o
+                                                            ur new MA with that
+                                                             new data point
+   62 00000036         
+   63 00000036         done
+   64 00000036         
+   65 00000036 E8BD 1060       POP              {R12, R6,R5} ; Revert changes
+   66 0000003A 4770            BX               R14         ; return
+   67 0000003C         
+   68 0000003C         moving_average_init
+   69 0000003C         
+   70 0000003C         ; Set R2 as zero for storing and R3 a counter for loopin
+                       g
+   71 0000003C F04F 0300       MOV              R3, #0
+   72 00000040 F04F 0200       MOV              R2, #0
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   73 00000044         
+   74 00000044         
+   75 00000044         set_to_zero
+   76 00000044         
+   77 00000044         ; initlialize all words in memory to 0
+   78 00000044 6002            STR              R2, [R0,#0] ; Store 0 where R0 
+                                                            is pointing
+   79 00000046 2B03            CMP              R3, #depth  ; See if the counte
+                                                            r reached depth
+   80 00000048 F103 0301       ADD              R3,R3,#1    ; Add 1 to the coun
+                                                            ter
+   81 0000004C F100 0004       ADD              R0,R0,#4    ; move R0 to the ne
+                                                            xt Word
+   82 00000050 DBF8            BLT              set_to_zero ; if we haven't fil
+                                                            led depth words wit
+                                                            h zero, loop back
+   83 00000052 6002            STR              R2, [R0,#0] ; once we are done 
+                                                             store 0 in the pos
+                                                            ition that will hol
+                                                            d the moving averag
+                                                            e
+   84 00000054 6042            STR              R2, [R0,#4] ; also store 0 wher
+                                                            e we're storing an 
+                                                            index
+   85 00000056 F04F 0203       MOV              R2, #depth  ; set R2 to depth (
+                                                            for float conversio
+                                                            n)
+   86 0000005A EE02 2A10       VMOV             S4, R2      ; Put R2 in a float
+                                                             register
+   87 0000005E EEB8 2A42       VCVT.F32.U32     S4,S4       ; Convert it into f
+                                                            loat. This will be 
+                                                            used for division.
+   88 00000062         
+   89 00000062         ; Store 1/d for performance gain in a arguement register
+                       
+   90 00000062 EEF7 2A00       VMOV.F32         S5, #1.0    ; store 1 in float 
+                                                            in S5
+   91 00000066 EEC2 1A82       VDIV.F32         S3, S5,S4   ; store 1/d in S3
+   92 0000006A F7FF FFD7       BL               inited      ; done with init, r
+                                                            eturn
+   93 0000006E         
+   94 0000006E         moving_average
+   95 0000006E         
+   96 0000006E         ; Registers for Arithmetic such as depth and literal 4
+   97 0000006E F04F 0104       MOV              R1, #4      ; using R1 to store
+                                                             4
+   98 00000072 F04F 0203       MOV              R2, #depth  ; using R2 to store
+                                                             depth
+   99 00000076         
+  100 00000076         ; Loading the index and pointing to the oldest data poin
+                       t stored in memory
+  101 00000076 FB02 1201       MLA              R2, R2, R1, R1 ; R2 stores (d*4
+                                                             + 4)
+  102 0000007A 4402            ADD              R2, R0, R2  ; R0 + (d+1)*4 wher
+                                                            e R0 is the pointer
+                                                             to the top of the 
+                                                            stack
+  103 0000007C 6813            LDR              R3, [R2,#0] ; Load the data fro
+                                                            m R0 + (d+1)*4 (loa
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+                                                            ding index)
+  104 0000007E FB03 0101       MLA              R1, R3, R1, R0 ; Make R1 point 
+                                                            to stack pointer + 
+                                                            index*4
+  105 00000082         
+  106 00000082         ; Moving Average Algorithm
+  107 00000082 ED91 1A00       VLDR.F32         S2, [R1,#0] ; Load the oldest d
+                                                            ata point onto S2
+  108 00000086 EE30 4AC1       VSUB.F32         S8,S1,S2    ; Newest data point
+                                                             - oldest data poin
+                                                            t
+  109 0000008A EE24 4A21       VMUL.F32         S8,S8,S3    ; Divide the previo
+                                                            us result by depth,
+                                                             storing it in S8
+  110 0000008E ED12 0A01       VLDR.F32         S0,[R2,#-4] ; Load the 'old' mo
+                                                            ving average from m
+                                                            emory
+  111 00000092 EE30 0A04       VADD.F32         S0,S0,S8    ; Add the 'old' mov
+                                                            ing average to S8; 
+                                                            store it in S0 for 
+                                                            return
+  112 00000096         
+  113 00000096         ; Storing the new moving average and replacing the oldes
+                       t data point with the newest
+  114 00000096 ED02 0A01       VSTR.F32         S0,[R2,#-4] ; Overwrite moving 
+                                                            average with the ne
+                                                            w calculated moving
+                                                             average
+  115 0000009A EDC1 0A00       VSTR.F32         S1, [R1, #0] ; Swap the oldest 
+                                                            data point with the
+                                                             newest
+  116 0000009E         
+  117 0000009E         ; incrementing the index and implementing the manual 'wr
+                       ap around'
+  118 0000009E F103 0301       ADD              R3, R3, #1  ; increment index b
+                                                            y 1
+  119 000000A2 2B03            CMP              R3, #depth  ; if it's equal to 
+                                                            the depth, it shoul
+                                                            d have been 0
+  120 000000A4 BF08 2300       MOVEQ            R3, #0      ; so yeah, move 0 i
+                                                            f it was equal to d
+                                                             (reset the index)
+  121 000000A8 6013            STR              R3, [R2,#0] ; store the increme
+                                                            nted index which is
+                                                             stored in R2.
+  122 000000AA F7FF FFBA       BL               load_new    ; if there are stil
+                                                            l values to process
+                                                            , jump to shift loo
+                                                            p
+  123 000000AE         
+  124 000000AE         
+  125 000000AE 00 00 00000000  LTORG
+  126 000000B4         
+  127 000000B4         ; Here are 512 samples of two periods of a sine wave wit
+                       h some noise
+  128 000000B4         ; added. Put this in your code somewhere.
+  129 000000B4         
+  130 000000B4                 align            4
+  131 000000B4 00000003 
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+                       depth   EQU              3
+  132 000000B4         
+  133 000000B4                 align            4
+  134 000000B4         test_vector
+  135 000000B4 3DAFFB8F 
+              3CB54019 
+              3DCBC9E7 
+              BC3175C4 
+              3E08236D         DCFS             0.08592903,  0.02212529,  0.099
+50619, -0.0108313,  0.13294764
+  136 000000C8 3E848F29 
+              3E8220B4 
+              3DC35A24 
+              3DF7CAC4 
+              3E6D7D11         DCFS             0.25890474,  0.25415575,  0.095
+38677,  0.12099221,  0.23192241
+  137 000000DC 3E3EF522 
+              3EA34A2D 
+              3EF46EC5 
+              3E808239 
+              3EB87523         DCFS             0.18648198,  0.31892529,  0.477
+40761,  0.25099351,  0.36026869
+  138 000000F0 3E87B435 
+              3E8FACEA 
+              3EA2C3E2 
+              3F095836 
+              3EDB76A2         DCFS             0.26504675,  0.28061609,  0.317
+90071,  0.53650223,  0.42863947
+  139 00000104 3EE0C3E7 
+              3F088623 
+              3EFFC84B 
+              3E996611 
+              3F20D5A0         DCFS             0.43899463,  0.53329674,  0.499
+57499,  0.29960684,  0.62825964
+  140 00000118 3EF2A7F5 
+              3F395D37 
+              3F2F48A4 
+              3EA53BC6 
+              3EF2F9AC         DCFS             0.47393765,  0.72407857,  0.684
+70216,  0.32272165,  0.47456111
+  141 0000012C 3F08731C 
+              3F3B9FC5 
+              3F1D5925 
+              3F26CF08 
+              3F3B27C4         DCFS             0.53300641,  0.73290661,  0.614
+64151,  0.65159655,  0.73107554
+  142 00000140 3F214019 
+              3F5A4F1D 
+              3F700100 
+              3F47B147 
+              3F7C3C11         DCFS             0.62988432,  0.85276965,  0.937
+51523,  0.78004879,  0.98529152
+  143 00000154 3F7A3BDD 
+              3F6B6B63 
+              3F53C9A3 
+              3F59C924 
+              3F4C3CC2         DCFS             0.97747597,  0.91960734,  0.827
+2955,  0.85072539,  0.79780207
+  144 00000168 3F616FE3 
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+              3F80A89E 
+              3F42509D 
+              3F6FCCFB 
+              3F6545C3         DCFS             0.88061353,  1.00514581,  0.759
+04255,  0.93672152,  0.8955957
+  145 0000017C 3F729007 
+              3F6D5061 
+              3F70BC49 
+              3F8445FD 
+              3F88D704         DCFS             0.9475102,  0.92700772,  0.9403
+73,  1.03338592,  1.0690618
+  146 00000190 3F445614 
+              3F7E261C 
+              3F71A827 
+              3F33A078 
+              3F9038BE         DCFS             0.76693842,  0.99276902,  0.943
+97206,  0.70166733,  1.12673158
+  147 000001A4 3F89D0D7 
+              3F8F2D72 
+              3F44B5A9 
+              3F8CF33E 
+              3F88F5C8         DCFS             1.0766858,  1.11857439,  0.7683
+9692,  1.10117313,  1.07000066
+  148 000001B8 3F986574 
+              3F866DBE 
+              3F5CD18D 
+              3F87379D 
+              3F8684D2         DCFS             1.19059609,  1.05022401,  0.862
+5725,  1.05638471,  1.05092837
+  149 000001CC 3F4D64E0 
+              3F6427F0 
+              3F8ACFB7 
+              3F778312 
+              3F815EDC         DCFS             0.80232048,  0.89123441,  1.084
+46397,  0.96684372,  1.01070733
+  150 000001E0 3F81DDC0 
+              3F5C4E72 
+              3F6D0F57 
+              3F640611 
+              3F6F8319         DCFS             1.01457979,  0.86057199,  0.926
+0153,  0.89071756,  0.93559416
+  151 000001F4 3F704082 
+              3F77017C 
+              3F5DC386 
+              3F65DFE8 
+              3F878B59         DCFS             0.93848433,  0.96486639,  0.866
+26469,  0.89794781,  1.05894003
+  152 00000208 3F56786E 
+              3F4C94A3 
+              3F6BD4A7 
+              3F1D5587 
+              3F495CA1         DCFS             0.83777514,  0.799143,  0.92121
+354,  0.61458628,  0.78656967
+  153 0000021C 3F4C3CFD 
+              3F421123 
+              3F416E2A 
+              3F0C3C48 
+              3F1A400B         DCFS             0.79780562,  0.75807397,  0.755
+58723,  0.54779481,  0.6025397
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  154 00000230 3F34BB3B 
+              3F351089 
+              3F035B4A 
+              3F26FFBD 
+              3F36A6CB         DCFS             0.70598194,  0.70728358,  0.513
+11171,  0.65233976,  0.71348255
+  155 00000244 3F6DA67D 
+              3F301671 
+              3F1DD904 
+              3F1CA519 
+              3F01ED7A         DCFS             0.92832165,  0.6878424,  0.6165
+9262,  0.6118942,  0.50752985
+  156 00000258 3F028A5D 
+              3F0F5B55 
+              3F3D4774 
+              3EDF20BA 
+              3EEB6AFA         DCFS             0.50992376,  0.55998735,  0.739
+37153,  0.43579655,  0.45980055
+  157 0000026C 3EE30C6B 
+              3ED5AE42 
+              3ECDCB35 
+              3E9114E0 
+              3ED0087E         DCFS             0.44345413,  0.41734511,  0.401
+94096,  0.2833624,  0.4063148
+  158 00000280 3E99DCCB 
+              3DD73848 
+              3E63D9F9 
+              3E04A45C 
+              3E5D45E5         DCFS             0.30051264,  0.10508782,  0.222
+51119,  0.12953323,  0.21608694
+  159 00000294 3E36B38F 
+              3E01CE86 
+              3D833F40 
+              3DB5D57E 
+              3E79A9FD         DCFS             0.17841934,  0.12676439,  0.064
+08548,  0.08878611,  0.24381251
+  160 000002A8 BD4BBB3A 
+              BD278032 
+              3C1AC990 
+              BC2CE729 
+              3E002663         DCFS             -0.0497391, -0.04089374,  0.009
+44747, -0.01055316,  0.12514643
+  161 000002BC 3D1A5610 
+              3E109DBD 
+              BE077A15 
+              BD15CF80 
+              BDC3A203         DCFS             0.03767973,  0.14122673, -0.132
+30165, -0.03657484, -0.09552386
+  162 000002D0 BD34EFFF 
+              BE9F08A7 
+              BE717CF5 
+              BE52189F 
+              BE5206C8         DCFS             -0.04417419, -0.31061288, -0.23
+582823, -0.20517205, -0.20510399
+  163 000002E4 BE8B6E06 
+              BE699C41 
+              BE8A43F5 
+              BE7B4EF7 
+              BEA8AAFE         DCFS             -0.2723238, -0.22813513, -0.270
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+04971, -0.24541842, -0.32942958
+  164 000002F8 BEF1C9F6 
+              BEF4983A 
+              BEA63B3D 
+              BF1C823B 
+              BEF58DF2         DCFS             -0.47224395, -0.47772389, -0.32
+467069, -0.61136217, -0.47959858
+  165 0000030C BE94DD6E 
+              BEF227FB 
+              BF25D729 
+              BF0B186A 
+              BEF85645         DCFS             -0.29075186, -0.47296127, -0.64
+781434, -0.54334126, -0.48503317
+  166 00000320 BEF4AF51 
+              BF181920 
+              BF22E55F 
+              BF55538F 
+              BF41AE8E         DCFS             -0.47790007, -0.59413339, -0.63
+631242, -0.83330625, -0.75656974
+  167 00000334 BF4FAA5B 
+              BF4F74E0 
+              BF3F634B 
+              BF2CAED3 
+              BF2E03AB         DCFS             -0.81119314, -0.81037712, -0.74
+760882, -0.67454263, -0.67974345
+  168 00000348 BF2311D2 
+              BF585A53 
+              BF4FF3C6 
+              BF536B8B 
+              BF6AA2AD         DCFS             -0.63699064, -0.84512825, -0.81
+231346, -0.8258597, -0.91654472
+  169 0000035C BF86AA69 
+              BF786B49 
+              BF5355DB 
+              BF597536 
+              BF6B3F8A         DCFS             -1.05207554, -0.97038703, -0.82
+552881, -0.84944475, -0.9189383
+  170 00000370 BF7F1A1C 
+              BF795EAB 
+              BF670D09 
+              BF4FC79F 
+              BF54BFBC         DCFS             -0.99649215, -0.97410076, -0.90
+254266, -0.81163975, -0.83105063
+  171 00000384 BF5F6580 
+              BF81029B 
+              BF7AFA44 
+              BF6AE509 
+              BF8DFE97         DCFS             -0.87264251, -1.00789201, -0.98
+038126, -0.91755727, -1.10933201
+  172 00000398 BF70EE39 
+              BF901ED6 
+              BF92BF9D 
+              BF5589B6 
+              BF8362C9         DCFS             -0.94113501, -1.12594104, -1.14
+647258, -0.83413254, -1.02645216
+  173 000003AC BF97573C 
+              BF8E51D8 
+              BF67F204 
+              BF680B43 
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+              BF8950C9         DCFS             -1.1823497, -1.11187273, -0.906
+03664, -0.90642182, -1.0727779
+  174 000003C0 BF640DCB 
+              BF5D3A42 
+              BF5F7C08 
+              BF8E23F0 
+              BF813301         DCFS             -0.89083546, -0.86417021, -0.87
+29863, -1.11047168, -1.00936907
+  175 000003D4 BF6D28FF 
+              BF8B616B 
+              BF8A4AC7 
+              BF5B7468 
+              BF9A04B3         DCFS             -0.92640683, -1.08891043, -1.08
+040699, -0.85724497, -1.20326837
+  176 000003E8 BF61BA35 
+              BF742F10 
+              BF496576 
+              BF48F102 
+              BF398F8D         DCFS             -0.88174752, -0.95384313, -0.78
+670442, -0.78492746, -0.72484669
+  177 000003FC BF5E035E 
+              BF4D3CA2 
+              BF4813FC 
+              BF803782 
+              BF6D7B83         DCFS             -0.8672389, -0.80170645, -0.781
+55496, -1.00169391, -0.92766591
+  178 00000410 BF576E72 
+              BF69D17F 
+              BF657D29 
+              BF720532 
+              BF363EEF         DCFS             -0.84152899, -0.91335288, -0.89
+644104, -0.94539175, -0.71189777
+  179 00000424 BF09E8ED 
+              BF4386F7 
+              BF29EDB1 
+              BF2FE08C 
+              BF3FB327         DCFS             -0.53871044, -0.76377817, -0.66
+378316, -0.68702008, -0.74882739
+  180 00000438 BF5D9C91 
+              BF208A11 
+              BF21F7FB 
+              BF053530 
+              BF19037A         DCFS             -0.86567027, -0.6271067, -0.632
+69012, -0.52034284, -0.59770931
+  181 0000044C BF276751 
+              BF2DBA53 
+              BF07D334 
+              BEF571DE 
+              BEA49800         DCFS             -0.65392025, -0.67862434, -0.53
+056648, -0.47938435, -0.32147218
+  182 00000460 BF20FC1C 
+              BEACD888 
+              BEB94CF1 
+              BEBF1E5E 
+              BE828673         DCFS             -0.6288469, -0.33758951, -0.361
+91514, -0.37327857, -0.25493203
+  183 00000474 BEF36136 
+              BEA174FF 
+              BDF7377C 
+
+
+
+ARM Macro Assembler    Page 10 
+
+
+              BE9E19EF 
+              BE90166D         DCFS             -0.47535105, -0.31534574, -0.12
+07113, -0.30879161, -0.28142109
+  184 00000488 BE8A9442 
+              BE6849B6 
+              BE400A55 
+              BDE4D278 
+              BE1B9D4C         DCFS             -0.27066238, -0.22684368, -0.18
+753942, -0.11172956, -0.15196723
+  185 0000049C BE2C40DD 
+              BC0AC474 
+              BEE2500B 
+              BD8514BE 
+              BDECA763         DCFS             -0.16821618, -0.00846969, -0.44
+201692, -0.06498097, -0.11555364
+  186 000004B0 BD1E0D37 
+              3DB2EBFE 
+              BC38E402 
+              3BF87181 
+              BDD51C18         DCFS             -0.03858682,  0.08736418, -0.01
+128483,  0.00758189, -0.10405749
+  187 000004C4 3D1C94F4 
+              3E4BCFB9 
+              3EB05A9D 
+              3E817AA0 
+              3E8C4860         DCFS             0.03822799,  0.19903459,  0.344
+44131,  0.25288869,  0.27398969
+  188 000004D8 3E9662F2 
+              3E666B63 
+              3E6C1FF5 
+              3E960763 
+              3EC0725E         DCFS             0.29372364,  0.22501903,  0.230
+59065,  0.29302512,  0.37587254
+  189 000004EC 3E87AE86 
+              3E89B352 
+              3EEC92F4 
+              3EEF237A 
+              3EA9EC96         DCFS             0.26500339,  0.26894622,  0.462
+05866,  0.46706753,  0.33188312
+  190 00000500 3F1BBECA 
+              3EDFA1E9 
+              3ED4B308 
+              3F097915 
+              3F18B335         DCFS             0.60837998,  0.43678215,  0.415
+4284,  0.5370038,  0.59648446
+  191 00000514 3ED6A29B 
+              3F0CCFB4 
+              3F1CDFA4 
+              3F20B9A0 
+              3EC805A3         DCFS             0.41920932,  0.55004429,  0.612
+78746,  0.62783244,  0.39066801
+  192 00000528 3F0E15B7 
+              3F41FE65 
+              3F56939D 
+              3F586329 
+              3F138FEF         DCFS             0.55501883,  0.75778801,  0.838
+18988,  0.84526305,  0.57641503
+  193 0000053C 3F2E84F2 
+              3F57344B 
+
+
+
+ARM Macro Assembler    Page 11 
+
+
+              3F2A225D 
+              3F6585E1 
+              3F455FCC         DCFS             0.68171609,  0.84064167,  0.664
+58682,  0.89657408,  0.770993
+  194 00000550 3F55275D 
+              3F7B8E92 
+              3F4A9FCC 
+              3F79D538 
+              3F94EE6C         DCFS             0.83263188,  0.98264423,  0.791
+50081,  0.9759097,  1.16352611
+  195 00000564 3F807447 
+              3F73DC28 
+              3F47AB40 
+              3F78E8FC 
+              3F836423         DCFS             1.00354853,  0.95257804,  0.779
+95684,  0.97230506,  1.02649338
+  196 00000578 3F7BCC13 
+              3F7AC102 
+              3F7A5A75 
+              3F70D12B 
+              3F737580         DCFS             0.98358269,  0.97950757,  0.977
+94278,  0.94069165,  0.95101166
+  197 0000058C 3F82DEED 
+              3F7EFD37 
+              3F5BB89E 
+              3F75E518 
+              3F64EC35         DCFS             1.02242817,  0.99605123,  0.858
+28576,  0.96052696,  0.89422924
+  198 000005A0 3F66F1C8 
+              3F5B5368 
+              3F754157 
+              3F91200A 
+              3F8A3B14         DCFS             0.90212676,  0.85674143,  0.958
+02827,  1.13379027,  1.07992794
+  199 000005B4 3F8CA9EB 
+              3F966DCD 
+              3F8019F3 
+              3F79AB8E 
+              3F64CD12         DCFS             1.09893546,  1.17522581,  1.000
+79189,  0.97527396,  0.89375415
+  200 000005C8 3F71B636 
+              3F85B50F 
+              3F8264AB 
+              3F8709F3 
+              3F82A843         DCFS             0.94418654,  1.04458799,  1.018
+69718,  1.05499114,  1.02075999
+  201 000005DC 3F813E0D 
+              3F60E517 
+              3F51E03E 
+              3F71054F 
+              3F74B2C9         DCFS             1.00970608,  0.87849562,  0.819
+82791,  0.94148725,  0.95585303
+  202 000005F0 3F782204 
+              3F4E561C 
+              3F4FE5A6 
+              3F72C568 
+              3F5EFB07         DCFS             0.96926905,  0.80600141,  0.812
+09789,  0.94832471,  0.87101787
+  203 00000604 3F5F30C5 
+
+
+
+ARM Macro Assembler    Page 12 
+
+
+              3F8027FA 
+              3F46A5DE 
+              3F736E37 
+              3F3EC080         DCFS             0.87183794,  1.00122,  0.775968
+42,  0.9509005,  0.74512479
+  204 00000618 3F4F22C2 
+              3F519B8F 
+              3F3B30DE 
+              3F4B53F4 
+              3F60B9F4         DCFS             0.80912414,  0.81877988,  0.731
+21438,  0.79424976,  0.87783741
+  205 0000062C 3F4FD035 
+              3F354058 
+              3F42BAA1 
+              3F137BA6 
+              3F199B66         DCFS             0.81177073,  0.70801304,  0.760
+66024,  0.57610546,  0.60002746
+  206 00000640 3F5A6408 
+              3EF7CCD3 
+              3EF55F7E 
+              3F126A7F 
+              3EE57C05         DCFS             0.85308888,  0.48398456,  0.479
+24416,  0.57193751,  0.44821183
+  207 00000654 3F31A3D2 
+              3EA0A181 
+              3EB71E0E 
+              3EEC30FF 
+              3E9A515C         DCFS             0.69390595,  0.31373217,  0.357
+65118,  0.46131132,  0.30140197
+  208 00000668 3F056F3F 
+              3EC91F35 
+              3EB49F41 
+              3EAD3F04 
+              3EA1349A         DCFS             0.52122871,  0.39281622,  0.352
+77752,  0.3383714,  0.31485444
+  209 0000067C 3E664A95 
+              3E9312A0 
+              3E8DBD95 
+              3E915132 
+              3E67C3B4         DCFS             0.22489388,  0.28725148,  0.276
+83702,  0.2838226,  0.22633248
+  210 00000690 3E969675 
+              3E4571C6 
+              3E218FB8 
+              3D7F1821 
+              3E638535         DCFS             0.29411665,  0.19281683,  0.157
+7748,  0.06227887,  0.22218783
+  211 000006A4 BD239002 
+              3C1AE7E3 
+              3E309095 
+              BDC755E5 
+              3E44CA3A         DCFS             -0.03993226,  0.0094547,  0.172
+42654, -0.0973318,  0.19217769
+  212 000006B8 BE086828 
+              BE4D0FEF 
+              3CF8DAA8 
+              BDACF1D5 
+              BCBEF1B3         DCFS             -0.13320982, -0.20025609,  0.03
+03777, -0.08444563, -0.02330861
+
+
+
+ARM Macro Assembler    Page 13 
+
+
+  213 000006CC BE3D4C7E 
+              BDF5EA19 
+              BE885BEC 
+              BDBFAD84 
+              BEA9420F         DCFS             -0.1848621, -0.12007541, -0.266
+32632, -0.09359267, -0.33058211
+  214 000006E0 BE7E957C 
+              BE96BCD0 
+              BE6E1B3C 
+              BEB1FACB 
+              BEA0FB3B         DCFS             -0.24861711, -0.29440927, -0.23
+252577, -0.34761653, -0.31441674
+  215 000006F4 BE9D9A2B 
+              BEAE52BB 
+              BEBED29E 
+              BF0670D7 
+              BF1E3550         DCFS             -0.30781684, -0.34047493, -0.37
+270063, -0.5251593, -0.61800097
+  216 00000708 BEC93145 
+              BEDA1819 
+              BF063D07 
+              BF24A168 
+              BF103AF1         DCFS             -0.39295402, -0.4259651, -0.524
+3687, -0.64308784, -0.56339936
+  217 0000071C BEF9A93B 
+              BF09134B 
+              BF207E3D 
+              BF223A34 
+              BF1BE7EB         DCFS             -0.48761924, -0.53545063, -0.62
+692623, -0.63370058, -0.60900753
+  218 00000730 BF29B066 
+              BF29022B 
+              BF389561 
+              BF419196 
+              BF493AE6         DCFS             -0.66284785, -0.66018932, -0.72
+102935, -0.75612769, -0.78605497
+  219 00000744 BF23FF2E 
+              BF7EA11E 
+              BF5F04BA 
+              BF34EF9D 
+              BF462B4E         DCFS             -0.6406125, -0.99464595, -0.871
+16586, -0.70678121, -0.7740983
+  220 00000758 BF44BDD2 
+              BF67C285 
+              BF5E379E 
+              BF7CC207 
+              BF887F7C         DCFS             -0.76852141, -0.90531186, -0.86
+803616, -0.98733561, -1.0663905
+  221 0000076C BF807B82 
+              BF76907D 
+              BF5F3766 
+              BF829FB7 
+              BF838417         DCFS             -1.00376915, -0.96314222, -0.87
+193907, -1.02049914, -1.02746856
+  222 00000780 BF63C465 
+              BF87BEA3 
+              BF89320F 
+              BF6FB0AE 
+              BF7E6A61         DCFS             -0.8897155, -1.06050522, -1.071
+
+
+
+ARM Macro Assembler    Page 14 
+
+
+84021, -0.93628965, -0.99381072
+  223 00000794 BF7EE6CB 
+              BF8B188B 
+              BF6D4096 
+              BF9EE307 
+              BF8D5630         DCFS             -0.99570915, -1.08668644, -0.92
+676673, -1.24130337, -1.10419271
+  224 000007A8 BF6A20C0 
+              BF82BB82 
+              BF7A54A6 
+              BF542E28 
+              BF7D947B         DCFS             -0.91456225, -1.02134733, -0.97
+785416, -0.82882931, -0.99054686
+  225 000007BC BF7B0912 
+              BF87A3EF 
+              BF8DC452 
+              BF6DA7B9 
+              BFA35FAF         DCFS             -0.98060715, -1.05969037, -1.10
+755376, -0.92834049, -1.2763575
+  226 000007D0 BF5BAF7D 
+              BF924ACA 
+              BF59EACD 
+              BF9099EC 
+              BF6E7E68         DCFS             -0.85814646, -1.14290736, -0.85
+1239, -1.12969736, -0.93161632
+  227 000007E4 BF58B314 
+              BF6D8F3F 
+              BF637196 
+              BF83B8A9 
+              BF73BA84         DCFS             -0.84648253, -0.92796699, -0.88
+845193, -1.02907291, -0.95206476
+  228 000007F8 BF70F19F 
+              BF5BB75C 
+              BF5982E2 
+              BF851253 
+              BF5147EF         DCFS             -0.94118686, -0.85826659, -0.84
+965335, -1.03962173, -0.81750386
+  229 0000080C BF6450F6 
+              BF29DFAC 
+              BF1AC122 
+              BF5E91A6 
+              BF6262A7         DCFS             -0.89186038, -0.66356923, -0.60
+450947, -0.86940991, -0.8843178
+  230 00000820 BF450403 
+              BF44FD6E 
+              BF1D94E0 
+              BF501954 
+              BF57F9FC         DCFS             -0.76959244, -0.76949202, -0.61
+555289, -0.81288649, -0.84365818
+  231 00000834 BF1FB8AF 
+              BF36148A 
+              BF2D3E34 
+              BF577303 
+              BF13F517         DCFS             -0.62391178, -0.71125092, -0.67
+673037, -0.84159866, -0.57795855
+  232 00000848 BF4B9DDE 
+              BF4C0372 
+              BF313CA6 
+              BF1BF312 
+
+
+
+ARM Macro Assembler    Page 15 
+
+
+              BF1BEA6F         DCFS             -0.79537762, -0.79692759, -0.69
+233167, -0.6091777, -0.60904592
+  233 0000085C BEDC7B22 
+              BEF07183 
+              BF0381B2 
+              BEFD3ADA 
+              BEC94F73         DCFS             -0.43062694, -0.46961604, -0.51
+369777, -0.49458963, -0.39318427
+  234 00000870 BEE78A1B 
+              BE881B71 
+              BF0963F7 
+              BED8BA2C 
+              BEB6597A         DCFS             -0.45222555, -0.26583435, -0.53
+668158, -0.42329538, -0.35615139
+  235 00000884 BEE4D089 
+              BE49C9E8 
+              BEAD5799 
+              BEB8B30E 
+              BE275BC1         DCFS             -0.44690349, -0.19705927, -0.33
+855893, -0.36074107, -0.16343595
+  236 00000898 BE33094B 
+              BE118A8E 
+              BE0D14AF 
+              BDC91491 
+              BDCFB4B9         DCFS             -0.17484013, -0.1421301, -0.137
+77421, -0.09818376, -0.10141892
+  237 000008AC BD9B845F 
+              3DE8100C         DCFS             -0.07593607,  0.11331186
+  238 000008B4         
+  239 000008B4         
+  240 000008B4                 END
+Command Line: --debug --xref --cpu=Cortex-M4.fp --apcs=interwork --depend=movin
+g_average.d -omoving_average.o -IC:\Keil\ARM\RV31\INC -IC:\Keil\ARM\CMSIS\Inclu
+de -IC:\Keil\ARM\Inc\ST\STM32F4xx --list=moving_average.lst moving_average.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+FILTERCODE 00000000
+
+Symbol: FILTERCODE
+   Definitions
+      At line 7 in file moving_average.s
+   Uses
+      None
+Comment: FILTERCODE unused
+done 00000036
+
+Symbol: done
+   Definitions
+      At line 63 in file moving_average.s
+   Uses
+      At line 58 in file moving_average.s
+Comment: done used once
+inited 0000001C
+
+Symbol: inited
+   Definitions
+      At line 46 in file moving_average.s
+   Uses
+      At line 92 in file moving_average.s
+Comment: inited used once
+load_new 00000022
+
+Symbol: load_new
+   Definitions
+      At line 52 in file moving_average.s
+   Uses
+      At line 56 in file moving_average.s
+      At line 122 in file moving_average.s
+
+moving_average 0000006E
+
+Symbol: moving_average
+   Definitions
+      At line 94 in file moving_average.s
+   Uses
+      At line 61 in file moving_average.s
+Comment: moving_average used once
+moving_average_init 0000003C
+
+Symbol: moving_average_init
+   Definitions
+      At line 68 in file moving_average.s
+   Uses
+      At line 44 in file moving_average.s
+Comment: moving_average_init used once
+moving_average_test 00000000
+
+Symbol: moving_average_test
+   Definitions
+      At line 34 in file moving_average.s
+   Uses
+      At line 8 in file moving_average.s
+Comment: moving_average_test used once
+set_to_zero 00000044
+
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+Symbol: set_to_zero
+   Definitions
+      At line 75 in file moving_average.s
+   Uses
+      At line 82 in file moving_average.s
+Comment: set_to_zero used once
+test_vector 000000B4
+
+Symbol: test_vector
+   Definitions
+      At line 134 in file moving_average.s
+   Uses
+      At line 49 in file moving_average.s
+Comment: test_vector used once
+9 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+depth 00000003
+
+Symbol: depth
+   Definitions
+      At line 131 in file moving_average.s
+   Uses
+      At line 38 in file moving_average.s
+      At line 79 in file moving_average.s
+      At line 85 in file moving_average.s
+      At line 98 in file moving_average.s
+      At line 119 in file moving_average.s
+
+1 symbol
+343 symbols in table

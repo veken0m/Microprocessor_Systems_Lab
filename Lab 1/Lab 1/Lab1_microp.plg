@@ -1,0 +1,19 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+C:\Users\gkrinker\Dropbox\2 Microprocessor Systems\Lab 1.1\Lab 1\Lab1_microp.uvproj
+Project File Date:  01/31/2013
+
+<h2>Output:</h2>
+Rebuild target 'Target 1'
+assembling startup_stm32f4xx.s...
+assembling moving_average.s...
+moving_average.s(125): warning: A1471W: Directive LTORG may be in an executable position
+moving_average.s(125): warning: A1581W: Added 2 bytes of padding at address 0xae
+linking...
+Lab1_microp.axf: Warning: L6305W: Image does not have an entry point. (Not specified or not set due to multiple choices.)
+Lab1_microp.sct(8): warning: L6314W: No section matches pattern *(InRoot$$Sections).
+Program Size: Code=2308 RO-data=392 RW-data=0 ZI-data=1536  
+"Lab1_microp.axf" - 0 Error(s), 4 Warning(s).

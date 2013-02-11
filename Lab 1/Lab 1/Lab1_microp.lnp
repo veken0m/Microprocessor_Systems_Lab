@@ -1,0 +1,5 @@
+--cpu Cortex-M4.fp "startup_stm32f4xx.o" "moving_average.o" 
+--strict --scatter "Lab1_microp.sct" 
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols 
+--info sizes --info totals --info unused --info veneers 
+ --list ".\Lab1_microp.map" -o Lab1_microp.axf
