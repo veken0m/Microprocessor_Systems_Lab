@@ -1,6 +1,6 @@
 Dependencies for Project 'project', Target 'Target ': (DO NOT MODIFY !)
-F (.\src\startup_stm32f4xx.s)(0x51117DC9)(--cpu Cortex-M4.fp -g --apcs=interwork -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx --list ".\lst\startup_stm32f4xx.lst" --xref -o ".\obj\startup_stm32f4xx.o" --depend ".\obj\startup_stm32f4xx.d")
-F (.\src\main.c)(0x511938CE)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\main.o" --omf_browse ".\obj\main.crf" --depend ".\obj\main.d")
+F (.\src\startup_stm32f4xx.s)(0x511A6840)(--cpu Cortex-M4.fp -g --apcs=interwork -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx --list ".\lst\startup_stm32f4xx.lst" --xref -o ".\obj\startup_stm32f4xx.o" --depend ".\obj\startup_stm32f4xx.d")
+F (.\src\main.c)(0x511A7082)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\main.o" --omf_browse ".\obj\main.crf" --depend ".\obj\main.d")
 I (src\stm32f4xx.h)(0x51117DC9)
 I (C:\Keil\ARM\CMSIS\Include\core_cm4.h)(0x5006D242)
 I (C:\Keil\ARM\ARMCC\bin\..\include\stdint.h)(0x4EB17B44)
@@ -40,7 +40,7 @@ I (src\moving_average.h)(0x51192CC7)
 I (src\init.h)(0x511903FE)
 I (src\utils.h)(0x511903DC)
 F (.\src\stm32f4xx_conf.h)(0x51117DC9)()
-F (.\src\system_stm32f4xx.c)(0x51117DC9)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\system_stm32f4xx.o" --omf_browse ".\obj\system_stm32f4xx.crf" --depend ".\obj\system_stm32f4xx.d")
+F (.\src\system_stm32f4xx.c)(0x511A6840)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\system_stm32f4xx.o" --omf_browse ".\obj\system_stm32f4xx.crf" --depend ".\obj\system_stm32f4xx.d")
 I (src\stm32f4xx.h)(0x51117DC9)
 I (C:\Keil\ARM\CMSIS\Include\core_cm4.h)(0x5006D242)
 I (C:\Keil\ARM\ARMCC\bin\..\include\stdint.h)(0x4EB17B44)
@@ -56,7 +56,7 @@ I (src\moving_average.h)(0x51192CC7)
 F (.\src\moving_average.h)(0x51192CC7)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\moving_average.o" --omf_browse ".\obj\moving_average.crf" --depend ".\obj\moving_average.d")
 F (.\src\utils.h)(0x511903DC)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\utils.o" --omf_browse ".\obj\utils.crf" --depend ".\obj\utils.d")
 F (.\src\init.h)(0x511903FE)()
-F (.\src\init.c)(0x511939DF)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\init.o" --omf_browse ".\obj\init.crf" --depend ".\obj\init.d")
+F (.\src\init.c)(0x51193A87)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\init.o" --omf_browse ".\obj\init.crf" --depend ".\obj\init.d")
 I (src\stm32f4xx.h)(0x51117DC9)
 I (C:\Keil\ARM\CMSIS\Include\core_cm4.h)(0x5006D242)
 I (C:\Keil\ARM\ARMCC\bin\..\include\stdint.h)(0x4EB17B44)
@@ -129,6 +129,16 @@ I (.\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_usart.h)(0x4EAABCBA)
 I (.\STM32F4xx_StdPeriph_Driver\inc\stm32f4xx_wwdg.h)(0x4EAABCBA)
 I (.\STM32F4xx_StdPeriph_Driver\inc\misc.h)(0x4EAABCBA)
 I (src\utils.h)(0x511903DC)
+F (.\src\fputc_debug.c)(0x511A7137)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\fputc_debug.o" --omf_browse ".\obj\fputc_debug.crf" --depend ".\obj\fputc_debug.d")
+I (C:\Keil\ARM\ARMCC\bin\..\include\stdio.h)(0x4EB17B46)
+I (C:\Keil\ARM\ARMCC\bin\..\include\rt_misc.h)(0x4EB17B40)
+I (.\src\stm32f4xx.h)(0x51117DC9)
+I (C:\Keil\ARM\CMSIS\Include\core_cm4.h)(0x5006D242)
+I (C:\Keil\ARM\ARMCC\bin\..\include\stdint.h)(0x4EB17B44)
+I (C:\Keil\ARM\CMSIS\Include\core_cmInstr.h)(0x505A054C)
+I (C:\Keil\ARM\CMSIS\Include\core_cmFunc.h)(0x4FDB3D1C)
+I (C:\Keil\ARM\CMSIS\Include\core_cm4_simd.h)(0x4F58F3B6)
+I (C:\Keil\ARM\Inc\ST\STM32F4xx\system_stm32f4xx.h)(0x4F85A3C4)
 F (.\STM32F4xx_StdPeriph_Driver\src\misc.c)(0x4EAABCBA)(-c --cpu Cortex-M4.fp -g -O0 --apcs=interwork -I.\src -I.\STM32F4xx_StdPeriph_Driver\inc --c99 -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -I C:\Keil\ARM\Inc\ST\STM32F4xx -o ".\obj\misc.o" --omf_browse ".\obj\misc.crf" --depend ".\obj\misc.d")
 I (.\STM32F4xx_StdPeriph_Driver\inc\misc.h)(0x4EAABCBA)
 I (.\src\stm32f4xx.h)(0x51117DC9)

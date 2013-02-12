@@ -80,9 +80,9 @@ void outputLight(int temp){
 			GPIO_SetBits(GPIOD,GPIO_Pin_14);
 	}
 } else {	//if ledMode is 1
-	GPIO_ResetBits(GPIOD,GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);	//reset all LEds
+	GPIO_ResetBits(GPIOD,GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);	//turn off all the LEDs
 	Delay(5000000L);	//wait
-	GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);	// set all of them
+	GPIO_SetBits(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);	// turn on all the LEDS
 	Delay(5000000L);	//wait
 }
 }
@@ -180,6 +180,7 @@ int main()
 					 temperature = ((V_Sense - V_25) / AVG_SLOPE) + 25;
 					// Send to moving average filter
 					 mov_avg = ma_filter(temperature, ss);
+					 printf("%f, %f\n", temperature, mov_avg);
 				}
 			}
 				return 0;
